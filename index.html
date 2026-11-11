@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7Б Анги - Англи хэлний уншлагын систем</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0284c7',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .word-badge {
+            transition: all 0.2s ease;
+            display: inline-block;
+            margin: 2px 4px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            user-select: none;
+        }
+        .word-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .word-pending {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+        }
+        .word-correct {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #86efac;
+            font-weight: 600;
+        }
+        .word-incorrect {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            font-weight: 600;
+            text-decoration: line-through;
+        }
+        .word-current {
+            outline: 2px solid #0284c7;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-sm">
+                    <i class="fa-solid fa-graduation-cap text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-slate-900 leading-tight">7Б Ангийн Уншлагын Танхим</h1>
+                    <p class="text-xs text-slate-500">Англи хэлний яриа болон дуудлага үнэлгээний систем</p>
+                </div>
+            </div>
+
+            <!-- Student Roster Selector -->
+            <div class="flex items-center gap-2 bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                <i class="fa-solid fa-user-graduate text-slate-500 ml-2"></i>
+                <label for="studentSelect" class="text-xs font-semibold text-slate-600 hidden sm:inline">Сурагч:</label>
+                <select id="studentSelect" class="bg-white text-slate-800 font-medium text-sm rounded-lg px-3 py-1.5 border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="" disabled selected>-- Сурагчаа сонгоно уу --</option>
+                    <!-- Options populated dynamically -->
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 py-6 flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 w-full">
+
+        <!-- Left Column: Reading Passage & Live Assessment -->
+        <div class="lg:col-span-2 flex flex-col gap-5">
+            
+            <!-- Target Passage Box -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col gap-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-1 rounded-md">Унших эх</span>
+                        <h2 class="font-bold text-slate-800">Dylan, Glasgow</h2>
+                    </div>
+                    <button id="btnReadFullTts" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg font-medium transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-volume-high text-blue-600"></i> Бүтэн эхийг сонсох (TTS)
+                    </button>
+                </div>
+
+                <!-- Text Context Tags -->
+                <div class="flex flex-wrap gap-2 text-xs text-slate-500">
+                    <span class="bg-slate-100 px-2.5 py-1 rounded-full"><i class="fa-regular fa-clock mr-1"></i> Facts and routines</span>
+                    <span class="bg-slate-100 px-2.5 py-1 rounded-full"><i class="fa-solid fa-bolt mr-1"></i> Moment of speaking</span>
+                    <span class="bg-slate-100 px-2.5 py-1 rounded-full"><i class="fa-solid fa-rotate mr-1"></i> Around now</span>
+                </div>
+
+                <!-- Interactive Words Reader Grid -->
+                <div id="passageContainer" class="leading-relaxed p-4 bg-slate-50/50 rounded-xl border border-slate-200 min-h-[160px]">
+                    <!-- Dynamic rendering of words as interactive badges -->
+                </div>
+
+                <p class="text-xs text-slate-400 italic">
+                    <i class="fa-solid fa-info-circle mr-1"></i> Та аль нэг үг дээр дарснаар тухайн үгийн стандарт Англи дуудлагыг сонсох боломжтой.
+                </p>
+            </div>
+
+            <!-- Voice Control Controls Card -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col gap-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-microphone text-blue-600"></i> Унших микрофон удирдлага
+                    </h3>
+                    <span id="recordingStatus" class="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-1 rounded-full flex items-center gap-1.5">
+                        <span class="w-2 h-2 rounded-full bg-slate-400"></span> Бэлэн
+                    </span>
+                </div>
+
+                <!-- Main Interactive Action Buttons -->
+                <div class="flex flex-wrap items-center justify-center gap-3 py-2">
+                    <button id="btnStartRecord" class="flex-1 min-w-[140px] bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-5 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-microphone"></i> Эхлэх / Бичих
+                    </button>
+                    
+                    <button id="btnStopRecord" disabled class="flex-1 min-w-[140px] bg-red-500 hover:bg-red-600 disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold py-3 px-5 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-square"></i> Зогсоох
+                    </button>
+
+                    <button id="btnPlayMyAudio" disabled class="flex-1 min-w-[140px] bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-semibold py-3 px-5 rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-play"></i> Дахин сонсох
+                    </button>
+                </div>
+
+                <!-- Custom Audio Player Container for Self-Listening -->
+                <div id="audioPlaybackContainer" class="hidden mt-2 p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                    <p class="text-xs font-semibold text-emerald-800 mb-2 flex items-center justify-between">
+                        <span><i class="fa-solid fa-headphones mr-1"></i> Өөрийн уншсан дууны бичлэг:</span>
+                        <span id="audioDuration" class="text-xs text-emerald-600">00:00</span>
+                    </p>
+                    <audio id="myAudioPlayer" controls class="w-full h-10 rounded-lg"></audio>
+                </div>
+
+                <!-- Real-time Spoken Text Live Box -->
+                <div class="mt-1">
+                    <label class="text-xs font-semibold text-slate-500 mb-1 block">Бодит хугацаанд таньсан яриа:</label>
+                    <div id="liveTranscript" class="w-full p-3 bg-slate-100 rounded-xl text-sm min-h-[50px] max-h-[100px] overflow-y-auto text-slate-600 border border-slate-200 italic">
+                        Микрофон эхлүүлэхийг хүлээж байна...
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Column: Results & Export Stats -->
+        <div class="flex flex-col gap-5">
+            
+            <!-- Real-time Score Stats Board -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col gap-4">
+                <h3 class="font-bold text-slate-800 text-sm border-b border-slate-100 pb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-blue-600"></i> Уншлагын үнэлгээний дата
+                </h3>
+
+                <!-- Dashboard Metric Cards Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-blue-50/70 p-3.5 rounded-xl border border-blue-100 flex flex-col items-center">
+                        <span class="text-xs text-blue-600 font-semibold mb-1">Нарийвчлал</span>
+                        <span id="accuracyStat" class="text-2xl font-black text-blue-800">0%</span>
+                        <span class="text-[10px] text-blue-500 mt-0.5">Зөв уншсан хувь</span>
+                    </div>
+
+                    <div class="bg-indigo-50/70 p-3.5 rounded-xl border border-indigo-100 flex flex-col items-center">
+                        <span class="text-xs text-indigo-600 font-semibold mb-1">Хурд (WPM)</span>
+                        <span id="wpmStat" class="text-2xl font-black text-indigo-800">0</span>
+                        <span class="text-[10px] text-indigo-500 mt-0.5">Үг / Минут</span>
+                    </div>
+
+                    <div class="bg-emerald-50/70 p-3.5 rounded-xl border border-emerald-100 flex flex-col items-center">
+                        <span class="text-xs text-emerald-600 font-semibold mb-1">Зөв үг</span>
+                        <span id="correctStat" class="text-2xl font-black text-emerald-800">0</span>
+                        <span class="text-[10px] text-emerald-500 mt-0.5">нийт үгээс</span>
+                    </div>
+
+                    <div class="bg-rose-50/70 p-3.5 rounded-xl border border-rose-100 flex flex-col items-center">
+                        <span class="text-xs text-rose-600 font-semibold mb-1">Алдсан үг</span>
+                        <span id="incorrectStat" class="text-2xl font-black text-rose-800">0</span>
+                        <span class="text-[10px] text-rose-500 mt-0.5">буруу / дутуу</span>
+                    </div>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="mt-2">
+                    <div class="flex justify-between text-xs font-semibold text-slate-600 mb-1">
+                        <span>Уншсан явц</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                        <div id="progressBar" class="bg-blue-600 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+
+                <!-- Export Data Controls -->
+                <div class="mt-3 flex flex-col gap-2 pt-3 border-t border-slate-100">
+                    <button id="btnDownloadCsv" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-file-csv text-emerald-400"></i> Дата татаж авах (CSV)
+                    </button>
+                    <button id="btnDownloadReport" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold py-2.5 px-4 rounded-xl transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-lines text-blue-600"></i> Дэлгэрэнгүй тайлан (TXT)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Class Roster Overview Table / Modal -->
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col gap-3">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center justify-between">
+                    <span><i class="fa-solid fa-users text-blue-600 mr-1.5"></i> 7Б Ангийн Сурагчид</span>
+                    <span class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-normal">Нийт 23</span>
+                </h3>
+                <div class="max-h-[220px] overflow-y-auto pr-1">
+                    <ul id="rosterList" class="divide-y divide-slate-100 text-sm">
+                        <!-- Student list rendered here -->
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
+            © 7Б Анги - Англи хэлний интерактив уншлагын ба үнэлгээний систем | Сурагчдын уншлагын датаг хадгалах болон шинжлэх модультай.
+        </div>
+    </footer>
+
+    <!-- Application Logic Script -->
+    <script>
+        // 1. Student Roster Data for Class 7Б (Exact 23 students from the provided image)
+        const studentsList = [
+            "Амина", "Анирсэн", "Анхмаа", "Батбаяр", "Баялаг-Эрдэнэ", 
+            "Баярт-Од", "Билгүүнтамир", "Булган-Эрдэнэ", "Буянхишиг", "Дамдиндалай", 
+            "Дөлгөөн", "Ижилзаая", "Лхагва-Очир", "Манлай", "Маралжингоо", 
+            "Мөнх-Эрдэнэ", "Мядагмаа", "Нарангоо", "Оюусувд", "Эрдэмбилэг", 
+            "Эрдэнэдалай", "Сайнзаая", "Эрдэнээ"
+        ];
+
+        // 2. Reading Target Text
+        const targetPassageText = `I always get up late on Saturdays. I usually have breakfast at lunchtime! But this week my parents are doing some work on the house. They’re changing the windows and they’re putting in a new kitchen. The noise is terrible. So today I’m breaking my usual Saturday routine. It’s only 9 a.m., but I’m not lying in my bed. I’m with my friend Gareth, and we’re walking up a mountain. The sun is shining on my back. It’s great! Gareth does this every week. Now I understand why.`;
+
+        // Processed Words array: [{ id: 0, original: "I", clean: "i", status: "pending" }]
+        let targetWords = [];
+        
+        // App State Variables
+        let currentStudent = "";
+        let isRecording = false;
+        let recognition = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let recordedAudioBlob = null;
+        let startTime = null;
+        let elapsedTimeSeconds = 0;
+        let timerInterval = null;
+
+        // Stats tracking
+        let correctCount = 0;
+        let incorrectCount = 0;
+        let currentWordIndex = 0;
+
+        // DOM Elements
+        const studentSelect = document.getElementById('studentSelect');
+        const rosterList = document.getElementById('rosterList');
+        const passageContainer = document.getElementById('passageContainer');
+        const btnStartRecord = document.getElementById('btnStartRecord');
+        const btnStopRecord = document.getElementById('btnStopRecord');
+        const btnPlayMyAudio = document.getElementById('btnPlayMyAudio');
+        const btnReadFullTts = document.getElementById('btnReadFullTts');
+        const recordingStatus = document.getElementById('recordingStatus');
+        const liveTranscript = document.getElementById('liveTranscript');
+        const myAudioPlayer = document.getElementById('myAudioPlayer');
+        const audioPlaybackContainer = document.getElementById('audioPlaybackContainer');
+
+        // Stats DOM Elements
+        const accuracyStat = document.getElementById('accuracyStat');
+        const wpmStat = document.getElementById('wpmStat');
+        const correctStat = document.getElementById('correctStat');
+        const incorrectStat = document.getElementById('incorrectStat');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const btnDownloadCsv = document.getElementById('btnDownloadCsv');
+        const btnDownloadReport = document.getElementById('btnDownloadReport');
+
+        // --- Initialization ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initStudentSelect();
+            initPassageData();
+            renderPassage();
+            setupSpeechRecognition();
+            setupAudioRecording();
+        });
+
+        // Initialize Student Selector & List
+        function initStudentSelect() {
+            studentSelect.innerHTML = '<option value="" disabled selected>-- Сурагчаа сонгоно уу --</option>';
+            rosterList.innerHTML = '';
+
+            studentsList.forEach((name, index) => {
+                // Dropdown option
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = `${index + 1}. ${name}`;
+                studentSelect.appendChild(opt);
+
+                // Roster list item
+                const li = document.createElement('li');
+                li.className = "py-2 px-1 flex items-center justify-between hover:bg-slate-50 rounded cursor-pointer";
+                li.innerHTML = `
+                    <span class="font-medium text-slate-700">${index + 1}. ${name}</span>
+                    <span id="badge-${name.replace(/\s+/g, '')}" class="text-[11px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded">Уншаагүй</span>
+                `;
+                li.addEventListener('click', () => {
+                    studentSelect.value = name;
+                    onStudentChange(name);
+                });
+                rosterList.appendChild(li);
+            });
+
+            studentSelect.addEventListener('change', (e) => {
+                onStudentChange(e.target.value);
+            });
+        }
+
+        function onStudentChange(name) {
+            currentStudent = name;
+            resetSession();
+            recordingStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-blue-500"></span> Сонгосон: ${name}`;
+        }
+
+        // Initialize Passage Data
+        function initPassageData() {
+            // Split by whitespace while retaining words
+            const rawWords = targetPassageText.trim().split(/\s+/);
+            targetWords = rawWords.map((word, idx) => {
+                // Clean punctuation for speech matching
+                const clean = word.toLowerCase().replace(/[^a-z0-9']/g, '');
+                return {
+                    id: idx,
+                    original: word,
+                    clean: clean,
+                    status: 'pending' // 'pending', 'correct', 'incorrect'
+                };
+            });
+        }
+
+        // Render Passage with Interactive Badges
+        function renderPassage() {
+            passageContainer.innerHTML = '';
+            targetWords.forEach((item, index) => {
+                const span = document.createElement('span');
+                let statusClass = 'word-pending';
+                if (item.status === 'correct') statusClass = 'word-correct';
+                if (item.status === 'incorrect') statusClass = 'word-incorrect';
+                if (index === currentWordIndex && isRecording) statusClass += ' word-current';
+
+                span.className = `word-badge ${statusClass}`;
+                span.textContent = item.original;
+                span.title = "Дарж дуудлагыг сонсоно уу";
+
+                // Click to hear TTS for individual word
+                span.addEventListener('click', () => {
+                    speakText(item.clean || item.original);
+                });
+
+                passageContainer.appendChild(span);
+            });
+        }
+
+        // Text-to-Speech (TTS) Function
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Stop any ongoing speech
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.9; // Slightly slower for clear educational listening
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert('Таны хөтөч дуу хөрвүүлэгч (Speech Synthesis) дэмжихгүй байна.');
+            }
+        }
+
+        // Full passage TTS
+        btnReadFullTts.addEventListener('click', () => {
+            speakText(targetPassageText);
+        });
+
+        // --- Web Speech API Recognition Setup ---
+        function setupSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                liveTranscript.textContent = "Анхааруулга: Таны хөтөч Web Speech API дэмжихгүй байна. Google Chrome ашиглахыг зөвлөж байна.";
+                btnStartRecord.disabled = true;
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    const transcriptPart = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcriptPart;
+                        processSpokenText(transcriptPart);
+                    } else {
+                        interimTranscript += transcriptPart;
+                    }
+                }
+
+                liveTranscript.innerHTML = `<strong>Таньж байгаа:</strong> ${finalTranscript || interimTranscript}`;
+            };
+
+            recognition.onerror = (event) => {
+                console.error("Speech Recognition Error:", event.error);
+                if (event.error === 'no-speech') {
+                    recordingStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500"></span> Дуу гарахыг хүлээж байна...`;
+                }
+            };
+
+            recognition.onend = () => {
+                if (isRecording) {
+                    // Restart continuous recognition if user didn't manually stop
+                    try { recognition.start(); } catch(e){}
+                }
+            };
+        }
+
+        // Audio Recording via MediaRecorder API for Playback
+        async function setupAudioRecording() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) {
+                            audioChunks.push(e.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        recordedAudioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
+                        const audioUrl = URL.createObjectURL(recordedAudioBlob);
+                        myAudioPlayer.src = audioUrl;
+                        btnPlayMyAudio.disabled = false;
+                        audioPlaybackContainer.classList.remove('hidden');
+                    };
+                } catch (err) {
+                    console.warn("Microphone access denied or error:", err);
+                }
+            }
+        }
+
+        // Process Spoken Words against Target Text Alignment
+        function processSpokenText(spokenText) {
+            const spokenWords = spokenText.toLowerCase().trim().split(/\s+/);
+
+            spokenWords.forEach(spoken => {
+                const cleanSpoken = spoken.replace(/[^a-z0-9']/g, '');
+                if (!cleanSpoken) return;
+
+                // Look ahead up to 3 words to handle slight skips
+                let matchFound = false;
+                for (let lookAhead = 0; lookAhead < 3; lookAhead++) {
+                    const targetIdx = currentWordIndex + lookAhead;
+                    if (targetIdx < targetWords.length) {
+                        const targetWord = targetWords[targetIdx];
+                        
+                        // Strict or Levenshtein similarity matching
+                        if (cleanSpoken === targetWord.clean || isSimilar(cleanSpoken, targetWord.clean)) {
+                            // Mark previous skipped words as incorrect
+                            for (let k = currentWordIndex; k < targetIdx; k++) {
+                                targetWords[k].status = 'incorrect';
+                                incorrectCount++;
+                            }
+                            // Mark target word as correct
+                            targetWord.status = 'correct';
+                            correctCount++;
+                            currentWordIndex = targetIdx + 1;
+                            matchFound = true;
+                            break;
+                        }
+                    }
+                }
+
+                // If word did not match upcoming text, count as extra/incorrect if we are in active range
+                if (!matchFound && currentWordIndex < targetWords.length) {
+                    // Optional: flag current pending as incorrect after several mismatches
+                }
+            });
+
+            updateStats();
+            renderPassage();
+        }
+
+        // Simple String Similarity helper (for minor pronunciation/recognition variance)
+        function isSimilar(s1, s2) {
+            if (!s1 || !s2) return false;
+            if (s1 === s2) return true;
+            // Handle common word variations (e.g., "they're" vs "they are")
+            if (s1.replace("'", "") === s2.replace("'", "")) return true;
+            return false;
+        }
+
+        // Start Recording Handler
+        btnStartRecord.addEventListener('click', () => {
+            if (!currentStudent) {
+                alert("Уншиж эхлэхээс өмнө 7В ангийн сурагчаа сонгоно уу!");
+                studentSelect.focus();
+                return;
+            }
+
+            isRecording = true;
+            audioChunks = [];
+            recordedAudioBlob = null;
+            btnPlayMyAudio.disabled = true;
+            audioPlaybackContainer.classList.add('hidden');
+
+            // Speech Recognition Start
+            if (recognition) {
+                try { recognition.start(); } catch(e){}
+            }
+
+            // Audio Recording Start
+            if (mediaRecorder && mediaRecorder.state === "inactive") {
+                mediaRecorder.start();
+            }
+
+            // Timer & Status updates
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimerAndWpm, 1000);
+
+            btnStartRecord.disabled = true;
+            btnStopRecord.disabled = false;
+            recordingStatus.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span> Бичиж байна...`;
+            liveTranscript.textContent = "Сонсож байна... Уншиж эхэлнэ үү.";
+
+            renderPassage();
+        });
+
+        // Stop Recording Handler
+        btnStopRecord.addEventListener('click', () => {
+            stopRecordingSession();
+        });
+
+        function stopRecordingSession() {
+            if (!isRecording) return;
+            isRecording = false;
+
+            if (recognition) {
+                try { recognition.stop(); } catch(e){}
+            }
+
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+            }
+
+            clearInterval(timerInterval);
+
+            // Mark remaining unread words as skipped/incorrect if session ended early
+            for (let i = currentWordIndex; i < targetWords.length; i++) {
+                if (targetWords[i].status === 'pending') {
+                    targetWords[i].status = 'incorrect';
+                    incorrectCount++;
+                }
+            }
+
+            btnStartRecord.disabled = false;
+            btnStopRecord.disabled = true;
+            recordingStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> Уншиж дууссан`;
+
+            // Update Student Status in Roster
+            const badge = document.getElementById(`badge-${currentStudent.replace(/\s+/g, '')}`);
+            if (badge) {
+                const acc = calculateAccuracy();
+                badge.className = "text-[11px] bg-emerald-100 text-emerald-700 font-semibold px-2 py-0.5 rounded";
+                badge.textContent = `${acc}% үр дүнтэй`;
+            }
+
+            updateStats();
+            renderPassage();
+        }
+
+        // Playback Recording Button
+        btnPlayMyAudio.addEventListener('click', () => {
+            if (myAudioPlayer.src) {
+                myAudioPlayer.play();
+            }
+        });
+
+        // Live Timer & Dynamic WPM calculation
+        function updateTimerAndWpm() {
+            if (!startTime) return;
+            elapsedTimeSeconds = Math.floor((Date.now() - startTime) / 1000);
+            updateStats();
+        }
+
+        // Calculate Accuracy Percentage
+        function calculateAccuracy() {
+            const total = targetWords.length;
+            if (total === 0) return 0;
+            return Math.round((correctCount / total) * 100);
+        }
+
+        // Update Statistics Board
+        function updateStats() {
+            const total = targetWords.length;
+            const processedCount = correctCount + incorrectCount;
+
+            // Accuracy %
+            const accuracy = calculateAccuracy();
+            accuracyStat.textContent = `${accuracy}%`;
+
+            // Words Per Minute (WPM)
+            let wpm = 0;
+            if (elapsedTimeSeconds > 0) {
+                wpm = Math.round((correctCount / elapsedTimeSeconds) * 60);
+            }
+            wpmStat.textContent = wpm;
+
+            // Counts
+            correctStat.textContent = correctCount;
+            incorrectStat.textContent = incorrectCount;
+
+            // Progress Bar
+            const percent = Math.min(100, Math.round((processedCount / total) * 100));
+            progressBar.style.width = `${percent}%`;
+            progressPercent.textContent = `${percent}%`;
+        }
+
+        // Reset Session for Next Attempt or New Student
+        function resetSession() {
+            if (isRecording) {
+                stopRecordingSession();
+            }
+            correctCount = 0;
+            incorrectCount = 0;
+            currentWordIndex = 0;
+            elapsedTimeSeconds = 0;
+            startTime = null;
+            recordedAudioBlob = null;
+            audioChunks = [];
+
+            initPassageData();
+            renderPassage();
+            updateStats();
+
+            liveTranscript.textContent = "Микрофон эхлүүлэхийг хүлээж байна...";
+            btnPlayMyAudio.disabled = true;
+            audioPlaybackContainer.classList.add('hidden');
+        }
+
+        // --- Data Export & Download Features ---
+
+        // CSV Download Function
+        btnDownloadCsv.addEventListener('click', () => {
+            if (!currentStudent) {
+                alert("Тайлан татахын тулд эхлээд сурагчаа сонгоно уу.");
+                return;
+            }
+
+            const now = new Date().toLocaleString('mn-MN');
+            const accuracy = calculateAccuracy();
+            let wpm = elapsedTimeSeconds > 0 ? Math.round((correctCount / elapsedTimeSeconds) * 60) : 0;
+
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // UTF-8 BOM
+            csvContent += "Сурагчийн нэр,Анги,Огноо,Нарийвчлал (%),WPM (Үг/Мин),Зөв үг,Алдсан үг,Нийт үг\n";
+            csvContent += `"${currentStudent}","7Б","${now}",${accuracy}%,${wpm},${correctCount},${incorrectCount},${targetWords.length}\n\n`;
+
+            csvContent += "Дэлгэрэнгүй үг бүрийн уншсан байдал:\n";
+            csvContent += "Дугаар,Эх үг,Төлөв\n";
+            
+            targetWords.forEach((item, idx) => {
+                let statusMn = item.status === 'correct' ? "Зөв" : (item.status === 'incorrect' ? "Буруу/Алдсан" : "Уншаагүй");
+                csvContent += `${idx + 1},"${item.original}","${statusMn}"\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `7Б_${currentStudent}_Уншлагын_Дата_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+        // Text Detailed Report Download
+        btnDownloadReport.addEventListener('click', () => {
+            if (!currentStudent) {
+                alert("Тайлан татахын тулд эхлээд сурагчаа сонгоно уу.");
+                return;
+            }
+
+            const now = new Date().toLocaleString('mn-MN');
+            const accuracy = calculateAccuracy();
+            let wpm = elapsedTimeSeconds > 0 ? Math.round((correctCount / elapsedTimeSeconds) * 60) : 0;
+
+            let report = `=============== 7Б АНГИ - АНГЛИ ХЭЛНИЙ УНШЛАГЫН ТАЙЛАН ===============\n\n`;
+            report += `Сурагчийн нэр: ${currentStudent}\n`;
+            report += `Анги: 7Б\n`;
+            report += `Огноо: ${now}\n`;
+            report += `Уншсан хугацаа: ${elapsedTimeSeconds} секунд\n`;
+            report += `Уншлагын нарийвчлал: ${accuracy}%\n`;
+            report += `Унших хурд (WPM): ${wpm} үг/минут\n`;
+            report += `Зөв дуудсан үг: ${correctCount}\n`;
+            report += `Буруу/Алдсан үг: ${incorrectCount}\n`;
+            report += `Нийт эхийн үг: ${targetWords.length}\n\n`;
+            report += `----------------------------------------------------------------------\n`;
+            report += `АЛДСАН/БУРУУ УНШСАН ҮГСИЙН ЖАГСААЛТ:\n`;
+
+            const incorrectList = targetWords.filter(w => w.status === 'incorrect');
+            if (incorrectList.length === 0) {
+                report += `(Бүх үгийг зөв уншсан байна. Баяр хүргэе!)\n`;
+            } else {
+                incorrectList.forEach(w => {
+                    report += `- ${w.original}\n`;
+                });
+            }
+
+            report += `\n======================================================================\n`;
+
+            const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `7Б_${currentStudent}_Уншлагын_Тайлан.txt`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        });
+    </script>
+</body>
+</html>
